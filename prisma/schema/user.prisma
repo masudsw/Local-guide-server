@@ -1,0 +1,16 @@
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role // 
+  guideProfile     GuideProfile?
+  listings         Listing[]           // Guide → Listings
+  touristBookings  Booking[] @relation("TouristBookings")
+  reviews          Review[]
+  availabilities   GuideAvailability[] // Guide → Availability
+}
+
+
+
+

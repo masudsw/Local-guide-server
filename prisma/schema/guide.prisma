@@ -1,0 +1,19 @@
+model GuideProfile {
+    id         String   @id @default(uuid())
+    userId     String   @unique
+    expertise  String[]
+    dailyRate  Float
+    isVerified Boolean
+    user       User     @relation(fields: [userId], references: [id])
+}
+
+model GuideAvailability {
+    id        String    @id @default(uuid())
+    guideId   String
+    date      DateTime? // null = recurring
+    dayOfWeek Int? // 0 = Sunday, 6 = Saturday
+    startTime String // "09:00"
+    endTime   String // "17:00"
+    isBooked  Boolean   @default(false)
+    guide     User      @relation(fields: [guideId], references: [id])
+}

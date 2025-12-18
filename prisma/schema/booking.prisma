@@ -1,0 +1,13 @@
+model Booking {
+  id        String @id @default(uuid())
+  date      DateTime
+  status    BookingStatus @default(PENDING)
+
+  touristId String
+  listingId String
+
+  tourist User    @relation("TouristBookings", fields: [touristId], references: [id])
+  listing Listing @relation(fields: [listingId], references: [id])
+
+  createdAt DateTime @default(now())
+}
