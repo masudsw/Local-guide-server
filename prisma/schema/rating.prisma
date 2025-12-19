@@ -10,4 +10,5 @@ model Review {
   listing Listing @relation(fields: [listingId], references: [id])
 
   createdAt DateTime @default(now())
+   updatedAt DateTime @updatedAt
 }
