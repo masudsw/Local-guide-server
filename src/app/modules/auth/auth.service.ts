@@ -7,7 +7,6 @@ import { Request } from "express";
 import AppError from "../../errors/apiError";
 import httpStatus from "http-status"
 import { jwtHelper } from "../../helper/jwtHelper";
-import { email } from "zod";
 import config from "../../../config";
 
 
@@ -27,7 +26,6 @@ export const registerUser = async (req: Request) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-
   // Create user
   const user = await prisma.user.create({
     data: {
