@@ -6,6 +6,7 @@ model User {
   profilePhoto  String? 
   role         Role 
   bio          String?
+  status      UserStatus @default(ACTIVE)
   languages    String[]
   guideProfile     GuideProfile?
   listings         Listing[]           // Guide → Listings
