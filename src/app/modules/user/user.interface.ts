@@ -11,4 +11,6 @@ export interface IUpdateUserProfile {
   bio?: string;
   languages?: string[];
   profilePhoto?: string;
+  expertise?: string[];
+  dailyRate?: number;
 }

@@ -3,6 +3,7 @@ import { UserService } from "./user.service";
 
 
 const getMyProfile = async (req: Request, res: Response) => {
+  console.log("Logged in user payload:", req.user);
   const result = await UserService.getMyProfile(req.user!);
 
   res.status(200).json({

@@ -100,8 +100,8 @@ const login=async(payload:{email:string, password:string})=>{
     if(!isCorrectPassword){
         throw new AppError(httpStatus.BAD_REQUEST,"Password incorrect")
     }
-    const accessToken=jwtHelper.generateToken({email:user.email, role:user.role},config.access_token_secret as string,config.access_token_expires as string)
-    const refreshToken=jwtHelper.generateToken({email:user.email,role:user.role},config.refresh_token_secret as string, config.refresh_token_expires as string)
+    const accessToken=jwtHelper.generateToken({id:user.id,email:user.email, role:user.role},config.access_token_secret as string,config.access_token_expires as string)
+    const refreshToken=jwtHelper.generateToken({id:user.id,email:user.email,role:user.role},config.refresh_token_secret as string, config.refresh_token_expires as string)
 
     return{
         accessToken,

@@ -1,4 +1,5 @@
 
+import { Role } from "@prisma/client";
 import { prisma } from "../../shared/prisma";
 import { IUserPayload, IUpdateUserProfile } from "./user.interface";
 
@@ -20,21 +21,33 @@ const getMyProfile = async (user: IUserPayload) => {
   return result;
 };
 
-const updateMyProfile = async (
+export const updateMyProfile = async (
   user: IUserPayload,
   payload: IUpdateUserProfile
 ) => {
+  // 1. Destructure the payload to separate Guide-specific data
+  const { expertise, dailyRate, ...userData } = payload;
+
   const result = await prisma.user.update({
-    where: { id: user.id },
-    data: payload,
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      profilePhoto: true,
-      bio: true,
-      languages: true,
+    where: {
+      id: user.id,
+    },
+    data: {
+      // 2. Update standard User fields (name, bio, languages, etc.)
+      ...userData,
+
+      // 3. Handle Nested Update for GuideProfile
+      guideProfile: user.role === Role.GUIDE 
+        ? {
+            update: {
+              expertise: expertise,
+              dailyRate: dailyRate ? Number(dailyRate) : undefined,
+            },
+          }
+        : undefined,
+    },
+    include: {
+      guideProfile: true, // Returns the guide data in the response
     },
   });
 
