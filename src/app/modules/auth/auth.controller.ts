@@ -5,7 +5,7 @@ import { AuthService } from "./auth.service";
 
 
 
-export const registerUser = async (req: Request, res: Response) => {
+const registerUser = async (req: Request, res: Response) => {
   const result = await AuthService.registerUser(req);
   res.status(201).json({
     success: true,
@@ -14,7 +14,7 @@ export const registerUser = async (req: Request, res: Response) => {
   });
 };
 
-export const registerAdmin = async (req: Request, res: Response) => {
+const registerAdmin = async (req: Request, res: Response) => {
   const result = await AuthService.registerAdmin(req);
   res.status(201).json({
     success: true,
@@ -50,5 +50,7 @@ const login=catchAsync(
 )
 
 export const AuthController={
-    login
+    login,
+    registerAdmin,
+    registerUser
 }

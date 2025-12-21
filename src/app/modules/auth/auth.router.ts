@@ -1,6 +1,5 @@
 import express from "express"
 import { AuthController } from "./auth.controller";
-import { registerUser, registerAdmin } from "./auth.controller";
 import { Role } from "@prisma/client";
 import { fileUploader } from "../../helper/fileUploader";
 import auth from "../../middlewares/auth";
@@ -14,7 +13,7 @@ router.post(
   "/register-user",
   fileUploader.upload.single('file'),
   validateRequest(AuthValidation.registerUser),
-  registerUser
+  AuthController.registerUser
 );
 
 // Admin only
@@ -22,7 +21,7 @@ router.post(
   "/register-admin",
   fileUploader.upload.single('file'),
   auth(Role.ADMIN),
-  registerAdmin
+  AuthController.registerAdmin
 );
 
 router.post(
