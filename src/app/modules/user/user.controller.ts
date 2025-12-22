@@ -14,6 +14,7 @@ const getMyProfile = async (req: Request, res: Response) => {
 };
 
 const updateMyProfile = async (req: Request, res: Response) => {
+  
   const result = await UserService.updateMyProfile(req.user!, req.body);
 
   res.status(200).json({

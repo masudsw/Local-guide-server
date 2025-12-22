@@ -16,4 +16,9 @@ model GuideAvailability {
     endTime   String // "17:00"
     isBooked  Boolean   @default(false)
     guide     User      @relation(fields: [guideId], references: [id])
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+
+    @@unique([guideId, date, startTime, endTime])
+    @@unique([guideId, dayOfWeek, startTime, endTime])
 }
