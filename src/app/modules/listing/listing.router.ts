@@ -5,7 +5,7 @@ import { ListingValidation } from "./listing.validation";
 import auth from "../../middlewares/auth";
 import { Role } from "@prisma/client";
 import { fileUploader } from "../../helper/fileUploader";
-import { file } from "zod";
+
 
 const router = express.Router();
 

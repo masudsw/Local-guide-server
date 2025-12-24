@@ -19,7 +19,7 @@ const createListing = catchAsync(async (req: Request, res: Response) => {
 const updateListing = catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    const result = await ListingService.updateListing(id, req.body);
+    const result = await ListingService.updateListing(id,req.user as IUserPayload, req.body, req.files as Express.Multer.File[]);
 
     sendResponse(res, {
         statusCode: 200,

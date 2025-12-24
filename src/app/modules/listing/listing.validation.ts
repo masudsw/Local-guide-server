@@ -14,7 +14,6 @@ const createListingValidation = z.object({
 });
 
 const updateListingSchema = z.object({
-    body: z.object({
         title: z.string().optional(),
         description: z.string().optional(),
         city: z.string().optional(),
@@ -25,7 +24,6 @@ const updateListingSchema = z.object({
         maxGroup: z.number().optional(),
         images: z.array(z.string()).optional(),
         isActive: z.boolean().optional()
-    })
 });
 export const ListingValidation = {
     createListingSchema: createListingValidation,

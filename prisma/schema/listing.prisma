@@ -18,4 +18,5 @@ model Listing {
 
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+  @@unique([title, city, guideId])
 }
