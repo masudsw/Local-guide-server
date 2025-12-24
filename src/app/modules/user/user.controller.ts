@@ -1,38 +1,40 @@
 import { Request, Response } from "express";
 import { UserService } from "./user.service";
+import catchAsync from "../../shared/catchAsync";
+import sendResponse from "../../shared/sendResponse";
 
 
-const getMyProfile = async (req: Request, res: Response) => {
+const getMyProfile = catchAsync(async (req: Request, res: Response) => {
   console.log("Logged in user payload:", req.user);
   const result = await UserService.getMyProfile(req.user!);
-
-  res.status(200).json({
+  sendResponse(res, {
+    statusCode: 200,
     success: true,
     message: "Profile retrieved successfully",
-    data: result,
+    data: result
   });
-};
+});
 
-const updateMyProfile = async (req: Request, res: Response) => {
-  
-  const result = await UserService.updateMyProfile(req.user!, req.body);
-
-  res.status(200).json({
+const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserService.updateMyProfile(req.user!, req.body,req?.file);
+  sendResponse(res, {
+    statusCode: 200,
     success: true,
     message: "Profile updated successfully",
     data: result,
-  });
-};
+  })
+});
 
-const getUserById = async (req: Request, res: Response) => {
+const getUserById = catchAsync(async (req: Request, res: Response) => {
   const result = await UserService.getUserById(req.params.id);
 
-  res.status(200).json({
+  sendResponse(res, {
+    statusCode: 200,
     success: true,
     message: "User retrieved successfully",
     data: result,
   });
-};
+})
 
 export const UserController = {
   getMyProfile,

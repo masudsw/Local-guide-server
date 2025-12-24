@@ -1,4 +1,4 @@
-import express from "express"
+import express, { NextFunction, Request, Response } from "express"
 import { AuthController } from "./auth.controller";
 import { Role } from "@prisma/client";
 import { fileUploader } from "../../helper/fileUploader";
@@ -12,10 +12,14 @@ const router = express.Router();
 router.post(
   "/register-user",
   fileUploader.upload.single('file'),
-  validateRequest(AuthValidation.registerUser),
-  AuthController.registerUser
+  (req: Request, res: Response, next: NextFunction) => {
+    console.log(req.body)
+    if (req.body) {
+      req.body = AuthValidation.registerUserSchema.parse(JSON.parse(req.body.data));
+    }
+    return AuthController.registerUser(req, res, next);
+  }
 );
-
 // Admin only
 router.post(
   "/register-admin",
@@ -25,7 +29,7 @@ router.post(
 );
 
 router.post(
-    "/login",
-    AuthController.login
+  "/login",
+  AuthController.login
 )
-export const authRouter=router;
+export const authRouter = router;

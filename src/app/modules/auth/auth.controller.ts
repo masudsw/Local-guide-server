@@ -5,14 +5,15 @@ import { AuthService } from "./auth.service";
 
 
 
-const registerUser = async (req: Request, res: Response) => {
+const registerUser = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.registerUser(req);
-  res.status(201).json({
+  sendResponse(res, {
+    statusCode: 201,
     success: true,
     message: "User registered successfully",
     data: result,
   });
-};
+});
 
 const registerAdmin = async (req: Request, res: Response) => {
   const result = await AuthService.registerAdmin(req);
@@ -24,33 +25,33 @@ const registerAdmin = async (req: Request, res: Response) => {
 };
 
 
-const login=catchAsync(
-    async(req:Request, res:Response)=>{
-        const result=await AuthService.login(req.body);
-        const {accessToken,refreshToken}=result;
-        res.cookie("accessToken",accessToken,{
-            secure:true,
-            httpOnly:true,
-            sameSite:"none",
-            maxAge:1000*60*60
-        })
-        res.cookie("refreshToken",refreshToken,{
-            secure:true,
-            httpOnly:true,
-            sameSite:"none",
-            maxAge:1000*60*60
-        })
-        sendResponse(res,{
-            statusCode:201,
-            success:true,
-            message:"User logged in successfully",
-            data:null
-        })
-    }
+const login = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await AuthService.login(req.body);
+    const { accessToken, refreshToken } = result;
+    res.cookie("accessToken", accessToken, {
+      secure: true,
+      httpOnly: true,
+      sameSite: "none",
+      maxAge: 1000 * 60 * 60
+    })
+    res.cookie("refreshToken", refreshToken, {
+      secure: true,
+      httpOnly: true,
+      sameSite: "none",
+      maxAge: 1000 * 60 * 60
+    })
+    sendResponse(res, {
+      statusCode: 201,
+      success: true,
+      message: "User logged in successfully",
+      data: null
+    })
+  }
 )
 
-export const AuthController={
-    login,
-    registerAdmin,
-    registerUser
+export const AuthController = {
+  login,
+  registerAdmin,
+  registerUser
 }

@@ -1,9 +1,9 @@
-import { Router } from "express";
-import validateRequest from "../../middlewares/validateRequest";
-import { updateProfileSchema, getUserByIdSchema } from "./user.validation";
+import { NextFunction, Request, Response, Router } from "express";
+import { updateProfileSchema, getUserByIdSchema, UserValidation } from "./user.validation";
 import auth from "../../middlewares/auth";
-import { UserController } from "./user.controller";
+
 import { fileUploader } from "../../helper/fileUploader";
+import { UserController } from "./user.controller";
 
 
 const router = Router();
@@ -15,14 +15,18 @@ router.patch(
   "/me",
   auth(),
   fileUploader.upload.single('file'), // Multer runs first to "fill" req.body
-  validateRequest(updateProfileSchema),
-  UserController.updateMyProfile
+   (req: Request, res: Response, next: NextFunction) => {
+      console.log(req.body)
+      if (req.body) {
+        req.body = UserValidation.updateProfileSchema.parse(JSON.parse(req.body.data));
+      }
+      return UserController.updateMyProfile(req, res, next);
+    }
 );
 
 // Public profile
 router.get(
   "/:id",
-  // validateRequest(getUserByIdSchema),
   UserController.getUserById
 );
 export const UserRouter=router;

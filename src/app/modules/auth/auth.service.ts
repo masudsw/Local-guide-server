@@ -22,8 +22,10 @@ export const registerUser = async (req: Request) => {
 
   if (req.file) {
     const uploadResult = await fileUploader.uploadToCloudinary(req.file);
+    console.log("upload result", uploadResult)
     profilePhoto = uploadResult?.secure_url;
   }
+  
 
   const hashedPassword = await bcrypt.hash(password, 10);
   // Create user
