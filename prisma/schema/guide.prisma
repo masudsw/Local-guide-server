@@ -2,7 +2,8 @@ model GuideProfile {
     id         String   @id @default(uuid())
     userId     String   @unique
     expertise  String[]
-    dailyRate  Float
+    dailyRate  Float?
+    hourlyRate  Float  @default(20.0)
     isVerified Boolean
     user       User     @relation(fields: [userId], references: [id])
 }

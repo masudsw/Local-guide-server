@@ -1,6 +1,10 @@
 model Booking {
   id        String @id @default(uuid())
   date      DateTime
+  startTime   String @default("09:00")
+  endTime     String @default("10:00")
+  peopleCount Int    @default(1)
+  totalPrice  Float  @default(0.0)
   status    BookingStatus @default(PENDING)
 
   touristId String

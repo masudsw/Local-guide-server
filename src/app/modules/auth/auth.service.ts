@@ -19,9 +19,7 @@ export const registerUser = async (req: Request) => {
   }
 
   let profilePhoto: string | undefined;
-  console.log("inside auth.service req.body",req.body)
-  console.log("inside auth.service req.file",req.file)
-  console.log("Inside auth.service req.body.file",req.body.file)
+ 
   if (req.file) {
     const uploadResult = await fileUploader.uploadToCloudinary(req.file);
     console.log("upload result", uploadResult)
