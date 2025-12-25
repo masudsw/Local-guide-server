@@ -88,7 +88,7 @@ const timeToMinutes = (time: string) => {
           endTime,
           peopleCount,
           totalPrice,
-          status: "CONFIRMED",
+          status: BookingStatus.PENDING,
         },
       });
 
