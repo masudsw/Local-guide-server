@@ -14,5 +14,6 @@ export default {
     access_token_secret: process.env.ACCESS_TOKEN_SECRET,
     refresh_token_secret: process.env.REFRESH_TOKEN_SECRET,
     access_token_expires:process.env.ACCESS_TOKEN_EXPIRES,
-    refresh_token_expires:process.env.REFRESH_TOKEN_EXPIRES
+    refresh_token_expires:process.env.REFRESH_TOKEN_EXPIRES,
+    stripe_secret_key:process.env.STRIPE_SECRET_KEY
 }

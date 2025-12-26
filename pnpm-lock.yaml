@@ -41,6 +41,9 @@ importers:
       multer:
         specifier: ^2.0.2
         version: 2.0.2
+      stripe:
+        specifier: ^20.1.0
+        version: 20.1.0(@types/node@24.9.2)
       uuid:
         specifier: ^13.0.0
         version: 13.0.0
@@ -834,6 +837,15 @@ packages:
   strip-json-comments@2.0.1:
     resolution: {integrity: sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==}
     engines: {node: '>=0.10.0'}
+
+  stripe@20.1.0:
+    resolution: {integrity: sha512-o1VNRuMkY76ZCq92U3EH3/XHm/WHp7AerpzDs4Zyo8uE5mFL4QUcv/2SudWsSnhBSp4moO2+ZoGCZ7mT8crPmQ==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      '@types/node': '>=16'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
 
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
@@ -1721,6 +1733,12 @@ snapshots:
   strip-bom@3.0.0: {}
 
   strip-json-comments@2.0.1: {}
+
+  stripe@20.1.0(@types/node@24.9.2):
+    dependencies:
+      qs: 6.14.0
+    optionalDependencies:
+      '@types/node': 24.9.2
 
   supports-preserve-symlinks-flag@1.0.0: {}
 

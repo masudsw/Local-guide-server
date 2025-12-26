@@ -1,7 +1,7 @@
 model Review {
-  id        String @id @default(uuid())
-  rating    Int
-  comment   String?
+  id      String  @id @default(uuid())
+  rating  Int
+  comment String?
 
   userId    String
   listingId String
@@ -9,6 +9,8 @@ model Review {
   user    User    @relation(fields: [userId], references: [id])
   listing Listing @relation(fields: [listingId], references: [id])
 
-  createdAt DateTime @default(now())
-   updatedAt DateTime @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  GuideProfile   GuideProfile? @relation(fields: [guideProfileId], references: [id])
+  guideProfileId String?
 }

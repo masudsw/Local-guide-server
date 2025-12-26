@@ -1,199 +1,184 @@
-import { BookingStatus, PrismaClient, Role } from "@prisma/client";
+import { BookingStatus, PaymentStatus, PrismaClient, Role } from "@prisma/client";
 import httpStatus from "http-status";
 import ApiError from "../../errors/apiError";
+import { IUserPayload } from "../user/user.interface";
+
 const prisma = new PrismaClient();
 
-/**
- * Convert "HH:mm" → minutes
- */
-const timeToMinutes = (time: string) => {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-};
 
 
- const createBooking =async (payload: {
-    touristId: string;
+const createBooking = async (
+  user: IUserPayload,
+  payload: {
     listingId: string;
     date: Date;
-    startTime: string;
-    endTime: string;
     peopleCount: number;
-  }) => {
-    const {
-      touristId,
-      listingId,
-      date,
-      startTime,
-      endTime,
-      peopleCount,
-    } = payload;
+  }
+) => {
+  if (user.role !== Role.TOURIST) {
+    throw new ApiError(httpStatus.FORBIDDEN, "Only tourists can book");
+  }
 
-    const startMin = timeToMinutes(startTime);
-    const endMin = timeToMinutes(endTime);
+  const { listingId, date, peopleCount } = payload;
 
-    if (startMin >= endMin) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid time range");
-    }
 
-    return await prisma.$transaction(async (tx) => {
-      /* ---------------- Get listing & guide ---------------- */
-      const listing = await tx.listing.findUnique({
-        where: { id: listingId },
-      });
-
-      if (!listing) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Listing not found");
-      }
-
-      const guideId = listing.guideId;
-
-      /* ---------------- Check availability ---------------- */
-      const availability = await tx.guideAvailability.findFirst({
-        where: {
-          guideId,
-          date,
-          isBooked: false,
-        },
-      });
-
-      if (!availability) {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Guide not available on this date"
-        );
-      }
-
-      const availStart = timeToMinutes(availability.startTime);
-      const availEnd = timeToMinutes(availability.endTime);
-
-      if (startMin < availStart || endMin > availEnd) {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Booking time outside guide availability"
-        );
-      }
-
-      /* ---------------- Price calculation ---------------- */
-      const hours = (endMin - startMin) / 60;
-      const totalPrice = listing.price * hours * peopleCount;
-
-      /* ---------------- Create booking ---------------- */
-      const booking = await tx.booking.create({
-        data: {
-          touristId,
-          listingId,
-          date,
-          startTime,
-          endTime,
-          peopleCount,
-          totalPrice,
-          status: BookingStatus.PENDING,
-        },
-      });
-
-      /* ---------------- Update availability ---------------- */
-      // Remove old availability
-      await tx.guideAvailability.delete({
-        where: { id: availability.id },
-      });
-
-      // Remaining BEFORE booking
-      if (availStart < startMin) {
-        await tx.guideAvailability.create({
-          data: {
-            guideId,
-            date,
-            startTime: availability.startTime,
-            endTime: startTime,
-          },
-        });
-      }
-
-      // Remaining AFTER booking
-      if (endMin < availEnd) {
-        await tx.guideAvailability.create({
-          data: {
-            guideId,
-            date,
-            startTime: endTime,
-            endTime: availability.endTime,
-          },
-        });
-      }
-
-      return booking;
+  return prisma.$transaction(async (tx) => {
+    /* ---------- Get listing ---------- */
+    const listing = await tx.listing.findUnique({
+      where: { id: listingId },
     });
-  },
 
-
-
-const getMyBookings = async (userId: string, role: Role) => {
-    if (role === Role.TOURIST) {
-        return prisma.booking.findMany({
-            where: { touristId: userId },
-            include: { listing: true },
-            orderBy: { createdAt: "desc" },
-        });
+    if (!listing) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Listing not found");
     }
 
-    if (role === Role.GUIDE) {
-        return prisma.booking.findMany({
-            where: {
-                listing: {
-                    guideId: userId,
-                },
-            },
-            include: {
-                listing: true,
-                tourist: true,
-            },
-            orderBy: { createdAt: "desc" },
-        });
+    /* Guide cannot book own listing */
+    if (listing.guideId === user.id) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Guide cannot book their own listing"
+      );
+    }
+    if (peopleCount > listing.maxGroup) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `People count exceeds maximum allowed (${listing.maxGroup})`
+      );
     }
 
-    // ADMIN
-    return prisma.booking.findMany({
-        include: {
-            listing: true,
-            tourist: true,
-        },
+    /* ---------- Create booking ---------- */
+    const booking = await tx.booking.create({
+      data: {
+        touristId: user.id,
+        listingId,
+        date,
+        peopleCount,
+        status: BookingStatus.PENDING,
+        paymentStatus: PaymentStatus.UNPAID,
+      },
     });
+
+    return booking;
+  });
 };
 
+/* ===============================
+   GUIDE ACCEPT / DECLINE
+================================ */
 const updateBookingStatus = async (
-    bookingId: string,
-    userId: string,
-    role: Role,
-    status: BookingStatus
+  bookingId: string,
+  userId: string,
+  role: Role,
+  status: BookingStatus
 ) => {
-    const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-        include: { listing: true },
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { listing: true },
+  });
+
+  if (!booking) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Booking not found");
+  }
+
+  /* Only guide owner or admin */
+  if (
+    role === Role.GUIDE &&
+    booking.listing.guideId !== userId
+  ) {
+    throw new ApiError(httpStatus.FORBIDDEN, "Unauthorized");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    /* ---------- Update booking ---------- */
+    const updatedBooking = await tx.booking.update({
+      where: { id: bookingId },
+      data: { status },
     });
 
-    if (!booking) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Booking not found");
+    /* ---------- Create payment when confirmed ---------- */
+    if (status === BookingStatus.CONFIRMED) {
+      await tx.payment.create({
+        data: {
+          bookingId: booking.id,
+          amount: booking.listing.price,
+          transactionId: `TXN-${Date.now()}`,
+          status: PaymentStatus.UNPAID,
+        },
+      });
     }
 
-    // Only guide (owner) or admin can update status
-    if (
-        role === Role.GUIDE &&
-        booking.listing.guideId !== userId
-    ) {
-        throw new ApiError(httpStatus.FORBIDDEN, "Unauthorized");
-    }
+    return updatedBooking;
+  });
+};
 
-    const updated = await prisma.booking.update({
-        where: { id: bookingId },
-        data: { status },
+/* ===============================
+   COMPLETE TOUR (Guide)
+================================ */
+const completeBooking = async (
+  bookingId: string,
+  userId: string
+) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { listing: true, payment: true },
+  });
+
+  if (!booking) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Booking not found");
+  }
+
+  if (booking.listing.guideId !== userId) {
+    throw new ApiError(httpStatus.FORBIDDEN, "Unauthorized");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: BookingStatus.COMPLETED,
+        paymentStatus: PaymentStatus.PAID,
+      },
     });
 
-    return updated;
+    if (booking.payment) {
+      await tx.payment.update({
+        where: { id: booking.payment.id },
+        data: { status: PaymentStatus.PAID },
+      });
+    }
+  });
+};
+
+/* ===============================
+   GET MY BOOKINGS
+================================ */
+const getMyBookings = async (userId: string, role: Role) => {
+  if (role === Role.TOURIST) {
+    return prisma.booking.findMany({
+      where: { touristId: userId },
+      include: { listing: true },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  if (role === Role.GUIDE) {
+    return prisma.booking.findMany({
+      where: {
+        listing: { guideId: userId },
+      },
+      include: { listing: true, tourist: true },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  return prisma.booking.findMany({
+    include: { listing: true, tourist: true },
+  });
 };
 
 export const BookingService = {
-    createBooking,
-    getMyBookings,
-    updateBookingStatus,
+  createBooking,
+  updateBookingStatus,
+  completeBooking,
+  getMyBookings,
 };

@@ -6,10 +6,11 @@ import { BookingService } from "./booking.service";
 
 const createBooking = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
+  console.log(user)
 
   const result = await BookingService.createBooking(
     user.id,
-    req.body
+    user.role,
   );
 
   sendResponse(res, {
@@ -41,9 +42,8 @@ const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
   const { bookingId } = req.params;
 
   const result = await BookingService.updateBookingStatus(
+    user,
     bookingId,
-    user.id,
-    user.role,
     req.body.status
   );
 
