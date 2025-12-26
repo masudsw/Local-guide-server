@@ -2,6 +2,8 @@ import { BookingStatus, PaymentStatus, PrismaClient, Role } from "@prisma/client
 import httpStatus from "http-status";
 import ApiError from "../../errors/apiError";
 import { IUserPayload } from "../user/user.interface";
+import { sendEmail } from "../../utils/sendEmail";
+import config from "../../../config";
 
 const prisma = new PrismaClient();
 
@@ -15,6 +17,7 @@ const createBooking = async (
     peopleCount: number;
   }
 ) => {
+  console.log("üser in booking service", user)
   if (user.role !== Role.TOURIST) {
     throw new ApiError(httpStatus.FORBIDDEN, "Only tourists can book");
   }
@@ -46,6 +49,25 @@ const createBooking = async (
       );
     }
 
+    const existingBooking = await tx.booking.findFirst({
+      where: {
+        touristId: user.id,
+        listingId,
+        date,
+        status: {
+          in: ["PENDING", "CONFIRMED"],
+        },
+      },
+    });
+
+    if (existingBooking) {
+      throw new ApiError(
+        httpStatus.CONFLICT,
+        "You already have a booking for this day"
+      );
+    }
+
+
     /* ---------- Create booking ---------- */
     const booking = await tx.booking.create({
       data: {
@@ -70,31 +92,44 @@ const updateBookingStatus = async (
   bookingId: string,
   status: BookingStatus
 ) => {
+  // 1. Include the 'tourist' relation to get their email and name
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { listing: true },
+    include: { 
+      listing: true,
+      tourist: true // Needed for email details
+    },
   });
 
   if (!booking) {
     throw new ApiError(httpStatus.NOT_FOUND, "Booking not found");
   }
 
-  /* Only guide owner or admin */
-  if (
-    user.role === Role.GUIDE &&
-    booking.listing.guideId !== user.id
-  ) {
+  /* Authorization and Guard Clauses */
+  if (user.role === Role.GUIDE && booking.listing.guideId !== user.id) {
     throw new ApiError(httpStatus.FORBIDDEN, "Unauthorized");
   }
 
-  return prisma.$transaction(async (tx) => {
-    /* ---------- Update booking ---------- */
-    const updatedBooking = await tx.booking.update({
+  const restrictedStatuses = [
+    BookingStatus.COMPLETED,
+    BookingStatus.CANCELLED,
+    BookingStatus.CONFIRMED
+  ];
+
+  if (restrictedStatuses.includes(booking.status)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Cannot update a ${booking.status.toLowerCase()} booking`
+    );
+  }
+
+  // 2. Perform the database updates
+  const updatedBooking = await prisma.$transaction(async (tx) => {
+    const updated = await tx.booking.update({
       where: { id: bookingId },
       data: { status },
     });
 
-    /* ---------- Create payment when confirmed ---------- */
     if (status === BookingStatus.CONFIRMED) {
       await tx.payment.create({
         data: {
@@ -106,19 +141,48 @@ const updateBookingStatus = async (
       });
     }
 
-    return updatedBooking;
+    return updated;
   });
+
+  // 3. Trigger Email Notification AFTER the transaction is successful
+  if (status === BookingStatus.CONFIRMED) {
+    // Construct the payment URL (Frontend route)
+    const paymentUrl = `${config.client_url}/payment/${booking.id}`;
+
+    // Send email asynchronously (don't 'await' if you don't want to delay the API response)
+    sendEmail({
+      to: booking.tourist.email,
+      subject: "Action Required: Your Booking is Confirmed!",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; line-height: 1.6;">
+          <h2>Hello ${booking.tourist.name},</h2>
+          <p>Great news! Your booking for <strong>${booking.listing.title}</strong> has been confirmed by the guide.</p>
+          <p>To secure your spot, please complete the payment of <strong>$${booking.listing.price}</strong>.</p>
+          <div style="margin: 30px 0;">
+            <a href="${paymentUrl}" 
+               style="background-color: #6772e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+               Pay Now
+            </a>
+          </div>
+          <p>If the button doesn't work, copy and paste this link: ${paymentUrl}</p>
+          <p>Thank you!</p>
+        </div>
+      `,
+    }).catch((err) => console.error("Email notification failed:", err));
+  }
+
+  return updatedBooking;
 };
 
 /* ===============================
    COMPLETE TOUR (Guide)
 ================================ */
 const completeBooking = async (
-  bookingId: string,
+  user: IUserPayload,
   userId: string
 ) => {
   const booking = await prisma.booking.findUnique({
-    where: { id: bookingId },
+    where: { id: user.id },
     include: { listing: true, payment: true },
   });
 
@@ -132,7 +196,7 @@ const completeBooking = async (
 
   return prisma.$transaction(async (tx) => {
     await tx.booking.update({
-      where: { id: bookingId },
+      where: { id: booking.id },
       data: {
         status: BookingStatus.COMPLETED,
         paymentStatus: PaymentStatus.PAID,
@@ -151,7 +215,7 @@ const completeBooking = async (
 /* ===============================
    GET MY BOOKINGS
 ================================ */
-const getMyBookings = async (user:IUserPayload
+const getMyBookings = async (user: IUserPayload
 ) => {
   if (user.role === Role.TOURIST) {
     return prisma.booking.findMany({

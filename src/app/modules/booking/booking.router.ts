@@ -19,5 +19,17 @@ router.get(
   auth(Role.TOURIST),
   BookingController.getMyBookings
 );
+router.patch(
+  "/:bookingId/status",
+  auth(Role.GUIDE),
+  validateRequest(BookingValidation.updateBookingStatus),
+  BookingController.updateBookingStatus
+);
+
+router.patch(
+  "/:bookingId/complete",
+  auth(Role.GUIDE),
+  BookingController.completeBooking
+);
 
 export const BookingRoutes = router;

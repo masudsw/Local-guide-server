@@ -18,8 +18,9 @@ const createBooking = z.object({
 
 const updateBookingStatus = z.object({
 
-    status: z.enum(["PENDING", "CONFIRMED", "CANCELLED"]),
+    status: z.enum(["CONFIRMED", "CANCELLED"]),
 });
+
 
 export const BookingValidation = {
   createBooking,

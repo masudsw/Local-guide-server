@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-import { access } from 'fs';
 import path from 'path';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
@@ -15,5 +14,13 @@ export default {
     refresh_token_secret: process.env.REFRESH_TOKEN_SECRET,
     access_token_expires:process.env.ACCESS_TOKEN_EXPIRES,
     refresh_token_expires:process.env.REFRESH_TOKEN_EXPIRES,
-    stripe_secret_key:process.env.STRIPE_SECRET_KEY
+    stripe_secret_key:process.env.STRIPE_SECRET_KEY,
+    client_url:process.env.CLIENT_URL,
+    email_sender: {
+            smtp_host: process.env.SMTP_HOST,
+            smtp_port: process.env.SMTP_PORT ,
+            smtp_user: process.env.SMTP_USER ,
+            smtp_from: process.env.SMTP_FROM ,
+            smtp_pass:process.env.SMTP_PASS 
+        }
 }

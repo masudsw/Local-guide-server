@@ -6,11 +6,9 @@ import { BookingService } from "./booking.service";
 
 const createBooking = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
-  console.log(user)
-
+  console.log("user in controller",user)
   const result = await BookingService.createBooking(
-    user.id,
-    user.role,
+    user, req.body
   );
 
   sendResponse(res, {
@@ -25,8 +23,7 @@ const getMyBookings = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
 
   const result = await BookingService.getMyBookings(
-    user.id,
-    user.role
+    user
   );
 
   sendResponse(res, {
@@ -54,9 +51,22 @@ const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const completeBooking = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user!;
+  const { bookingId } = req.params;
+  await BookingService.completeBooking(user, bookingId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Booking completed",
+    data: null,
+  });
+});
 
 export const BookingController = {
   createBooking,
   getMyBookings,
   updateBookingStatus,
+  completeBooking,
 };
