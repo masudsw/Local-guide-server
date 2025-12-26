@@ -66,9 +66,8 @@ const createBooking = async (
    GUIDE ACCEPT / DECLINE
 ================================ */
 const updateBookingStatus = async (
+  user: IUserPayload,
   bookingId: string,
-  userId: string,
-  role: Role,
   status: BookingStatus
 ) => {
   const booking = await prisma.booking.findUnique({
@@ -82,8 +81,8 @@ const updateBookingStatus = async (
 
   /* Only guide owner or admin */
   if (
-    role === Role.GUIDE &&
-    booking.listing.guideId !== userId
+    user.role === Role.GUIDE &&
+    booking.listing.guideId !== user.id
   ) {
     throw new ApiError(httpStatus.FORBIDDEN, "Unauthorized");
   }
@@ -152,19 +151,20 @@ const completeBooking = async (
 /* ===============================
    GET MY BOOKINGS
 ================================ */
-const getMyBookings = async (userId: string, role: Role) => {
-  if (role === Role.TOURIST) {
+const getMyBookings = async (user:IUserPayload
+) => {
+  if (user.role === Role.TOURIST) {
     return prisma.booking.findMany({
-      where: { touristId: userId },
+      where: { touristId: user.id },
       include: { listing: true },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  if (role === Role.GUIDE) {
+  if (user.role === Role.GUIDE) {
     return prisma.booking.findMany({
       where: {
-        listing: { guideId: userId },
+        listing: { guideId: user.id },
       },
       include: { listing: true, tourist: true },
       orderBy: { createdAt: "desc" },
