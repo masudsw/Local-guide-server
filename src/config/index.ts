@@ -15,6 +15,7 @@ export default {
     access_token_expires:process.env.ACCESS_TOKEN_EXPIRES,
     refresh_token_expires:process.env.REFRESH_TOKEN_EXPIRES,
     stripe_secret_key:process.env.STRIPE_SECRET_KEY,
+    stripe_webhook_secret:process.env.STRIPE_WEBHOOK_SECRET,
     client_url:process.env.CLIENT_URL,
     email_sender: {
             smtp_host: process.env.SMTP_HOST,

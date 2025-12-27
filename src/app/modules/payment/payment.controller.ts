@@ -1,49 +1,43 @@
-import { Request, Response } from "express";
-import config from "../../../config";
-import { stripe } from "../../../helpers/stripe";
-import catchAsync from "../../../shared/catchAsync";
-import sendResponse from "../../../shared/sendResponse";
-import { PaymentService } from "./payment.service";
+import { Request, Response } from 'express';
+import Stripe from 'stripe';
+import config from '../../../config';
+import { PaymentService } from './payment.service';
+import httpStatus from 'http-status';
 
-const handleStripeWebhookEvent = catchAsync(async (req: Request, res: Response) => {
-    const sig = req.headers["stripe-signature"] as string;
-    const webhookSecret = config.stripeWebhookSecret as string;
+const stripe = new Stripe(config.stripe_secret_key!);
 
-    if (!webhookSecret) {
-        console.error("⚠️ Stripe webhook secret not configured");
-        return res.status(500).send("Webhook secret not configured");
+const handleWebhook = async (req: Request, res: Response) => {
+  const sig = req.headers['stripe-signature'] as string;
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body, // This MUST be the raw body
+      sig, 
+      config.stripe_webhook_secret!
+    );
+  } catch (err: any) {
+    return res.status(httpStatus.BAD_REQUEST).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const bookingId = session.metadata?.bookingId;
+    console.log("Processing Webhook for Booking:", bookingId);
+
+  if (!bookingId) {
+    console.error("❌ No bookingId found in session metadata!");
+    return res.status(400).send("No bookingId in metadata");
+  }
+
+    if (bookingId) {
+      await PaymentService.updatePaymentStatus(bookingId, session.id, session);
     }
+  }
 
-    let event;
-    try {
-        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err: any) {
-        console.error("⚠️ Webhook signature verification failed:", err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    try {
-        const result = await PaymentService.handleStripeWebhookEvent(event);
-
-        sendResponse(res, {
-            statusCode: 200,
-            success: true,
-            message: 'Webhook processed successfully',
-            data: result,
-        });
-    } catch (error: any) {
-        console.error("❌ Error processing webhook:", error);
-        // Still return 200 to acknowledge receipt to Stripe
-        // Stripe will retry if we return an error
-        sendResponse(res, {
-            statusCode: 200,
-            success: true,
-            message: 'Webhook received but processing failed',
-            data: { error: error.message },
-        });
-    }
-});
+  res.status(httpStatus.OK).json({ received: true });
+};
 
 export const PaymentController = {
-    handleStripeWebhookEvent
-}
+  handleWebhook,
+};

@@ -4,10 +4,9 @@ import ApiError from "../../errors/apiError";
 import { IUserPayload } from "../user/user.interface";
 import { sendEmail } from "../../utils/sendEmail";
 import config from "../../../config";
+import { stripe } from "../../helper/stripe";
 
 const prisma = new PrismaClient();
-
-
 
 const createBooking = async (
   user: IUserPayload,
@@ -76,7 +75,6 @@ const createBooking = async (
         date,
         peopleCount,
         status: BookingStatus.PENDING,
-        paymentStatus: PaymentStatus.UNPAID,
       },
     });
 
@@ -116,7 +114,7 @@ const updateBookingStatus = async (
     BookingStatus.CONFIRMED
   ];
 
-  if (restrictedStatuses.includes(booking.status)) {
+  if ((restrictedStatuses as BookingStatus[]).includes(booking.status)) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       `Cannot update a ${booking.status.toLowerCase()} booking`
@@ -199,7 +197,7 @@ const completeBooking = async (
       where: { id: booking.id },
       data: {
         status: BookingStatus.COMPLETED,
-        paymentStatus: PaymentStatus.PAID,
+        
       },
     });
 
@@ -240,9 +238,40 @@ const getMyBookings = async (user: IUserPayload
   });
 };
 
+// Example Backend Logic for the "Pay Now" click
+const createPaymentSession = async (bookingId: string) => {
+  const booking = await prisma.booking.findUnique({ 
+    where: { id: bookingId },
+    include: { listing: true }
+  });
+  if (!booking) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Booking not found in database");
+  }
+
+  // Create Stripe Session
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: [{
+      price_data: {
+        currency: 'usd',
+        product_data: { name: booking.listing.title },
+        unit_amount: booking.listing.price * 100, // Cents
+      },
+      quantity: 1,
+    }],
+    mode: 'payment',
+    metadata: { bookingId: booking.id }, // Crucial for your Webhook!
+    success_url: `${config.client_url}/payment/success`,
+    cancel_url: `${config.client_url}/payment/cancel`,
+  });
+
+  return session.url;
+};
+
 export const BookingService = {
   createBooking,
   updateBookingStatus,
   completeBooking,
   getMyBookings,
+  createPaymentSession
 };

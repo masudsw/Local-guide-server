@@ -6,7 +6,6 @@ model Booking {
 
   touristId     String
   listingId     String
-  paymentStatus PaymentStatus @default(UNPAID)
   payment       Payment?
 
   tourist User    @relation("TouristBookings", fields: [touristId], references: [id])

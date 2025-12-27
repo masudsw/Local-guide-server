@@ -19,6 +19,11 @@ router.get(
   auth(Role.TOURIST),
   BookingController.getMyBookings
 );
+router.post(
+  "/:bookingId/create-payment-session",
+  auth(Role.TOURIST),
+  BookingController.createPaymentSession
+);
 router.patch(
   "/:bookingId/status",
   auth(Role.GUIDE),
@@ -31,5 +36,6 @@ router.patch(
   auth(Role.GUIDE),
   BookingController.completeBooking
 );
+
 
 export const BookingRoutes = router;

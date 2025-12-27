@@ -19,6 +19,7 @@ enum PaymentStatus {
 enum BookingStatus {
   PENDING // Tourist requested
   CONFIRMED // Guide accepted
+  PAID // Tourist paid
   CANCELLED // Guide or Tourist cancelled
   COMPLETED // Tour finished
 }

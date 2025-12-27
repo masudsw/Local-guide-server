@@ -63,10 +63,23 @@ const completeBooking = catchAsync(async (req: Request, res: Response) => {
     data: null,
   });
 });
+const createPaymentSession = catchAsync(async (req: Request, res: Response) => {
+  const { bookingId } = req.params;
+
+  const result = await BookingService.createPaymentSession(bookingId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Payment session created",
+    data: result,
+  });
+});
 
 export const BookingController = {
   createBooking,
   getMyBookings,
   updateBookingStatus,
   completeBooking,
+  createPaymentSession
 };
