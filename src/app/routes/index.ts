@@ -29,8 +29,7 @@ const moduleRoutes = [
         path:'/review',
         route:ReviewRoutes
     }
-    
-   
+      
 ];
 
 moduleRoutes.forEach(route => router.use(route.path, route.route))
