@@ -85,6 +85,12 @@ const createBooking = async (
 /* ===============================
    GUIDE ACCEPT / DECLINE
 ================================ */
+const getAllBookings = async () => {
+  return prisma.booking.findMany({
+    include: { listing: true, tourist: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
 const updateBookingStatus = async (
   user: IUserPayload,
   bookingId: string,
@@ -177,10 +183,10 @@ const updateBookingStatus = async (
 ================================ */
 const completeBooking = async (
   user: IUserPayload,
-  userId: string
+  bookingId: string
 ) => {
   const booking = await prisma.booking.findUnique({
-    where: { id: user.id },
+    where: { id: bookingId },
     include: { listing: true, payment: true },
   });
 
@@ -188,28 +194,28 @@ const completeBooking = async (
     throw new ApiError(httpStatus.NOT_FOUND, "Booking not found");
   }
 
-  if (booking.listing.guideId !== userId) {
+  // 1. Authorization: Only the guide of this listing can complete it
+  if (booking.listing.guideId !== user.id) {
     throw new ApiError(httpStatus.FORBIDDEN, "Unauthorized");
   }
 
-  return prisma.$transaction(async (tx) => {
-    await tx.booking.update({
-      where: { id: booking.id },
-      data: {
-        status: BookingStatus.COMPLETED,
-        
-      },
-    });
+  // 2. Safety Check: Don't allow completing a tour that wasn't paid for
+  // Unless your business logic allows "Cash on Delivery"
+  if (!booking.payment || booking.payment.status !== PaymentStatus.PAID) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST, 
+      "Cannot complete a booking that has not been paid."
+    );
+  }
 
-    if (booking.payment) {
-      await tx.payment.update({
-        where: { id: booking.payment.id },
-        data: { status: PaymentStatus.PAID },
-      });
-    }
+  // 3. Final Update: Only change the Booking status
+  return await prisma.booking.update({
+    where: { id: bookingId },
+    data: {
+      status: BookingStatus.COMPLETED,
+    },
   });
 };
-
 /* ===============================
    GET MY BOOKINGS
 ================================ */
@@ -270,6 +276,7 @@ const createPaymentSession = async (bookingId: string) => {
 
 export const BookingService = {
   createBooking,
+  getAllBookings,
   updateBookingStatus,
   completeBooking,
   getMyBookings,

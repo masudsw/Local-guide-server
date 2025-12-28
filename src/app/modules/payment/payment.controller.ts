@@ -26,7 +26,7 @@ const handleWebhook = async (req: Request, res: Response) => {
     console.log("Processing Webhook for Booking:", bookingId);
 
   if (!bookingId) {
-    console.error("❌ No bookingId found in session metadata!");
+    console.error("No bookingId found in session metadata!");
     return res.status(400).send("No bookingId in metadata");
   }
 

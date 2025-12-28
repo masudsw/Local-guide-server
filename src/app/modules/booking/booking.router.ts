@@ -13,6 +13,11 @@ router.post(
   validateRequest(BookingValidation.createBooking),
   BookingController.createBooking
 );
+router.get(
+  "/all",
+  // auth(Role.ADMIN),
+  BookingController.getAllBookings
+);
 
 router.get(
   "/my-bookings",

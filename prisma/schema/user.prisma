@@ -11,5 +11,6 @@ model User {
   guideProfile    GuideProfile?
   touristBookings Booking[]     @relation("TouristBookings")
   Listing         Listing[]
-  Review          Review[]
+
+  Review Review[]
 }

@@ -4,14 +4,15 @@ model Booking {
   peopleCount Int           @default(1)
   status      BookingStatus @default(PENDING)
 
-  touristId     String
-  listingId     String
-  payment       Payment?
+  touristId String
+  listingId String
+  payment   Payment?
 
   tourist User    @relation("TouristBookings", fields: [touristId], references: [id])
   listing Listing @relation(fields: [listingId], references: [id])
 
   createdAt DateTime @default(now())
+  Review    Review?
 }
 
 model Payment {
