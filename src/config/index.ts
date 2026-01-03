@@ -17,6 +17,7 @@ export default {
     stripe_secret_key:process.env.STRIPE_SECRET_KEY,
     stripe_webhook_secret:process.env.STRIPE_WEBHOOK_SECRET,
     client_url:process.env.CLIENT_URL,
+    bcrypt_salt_rounds:process.env.BCRYPT_SALT_ROUNDS,
     email_sender: {
             smtp_host: process.env.SMTP_HOST,
             smtp_port: process.env.SMTP_PORT ,

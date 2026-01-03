@@ -8,6 +8,7 @@ import AppError from "../../errors/apiError";
 import httpStatus from "http-status"
 import { jwtHelper } from "../../helper/jwtHelper";
 import config from "../../../config";
+import { Secret } from "jsonwebtoken";
 
 
 export const registerUser = async (req: Request) => {
@@ -90,7 +91,6 @@ export const registerAdmin = async (req: Request) => {
   return admin;
 };
 
-
 const login=async(payload:{email:string, password:string})=>{
     const user=await prisma.user.findUniqueOrThrow({
         where:{
@@ -110,6 +110,46 @@ const login=async(payload:{email:string, password:string})=>{
         refreshToken
     }
 }
+const refreshToken = async (token: string) => {
+    let decodedData;
+    try {
+        decodedData = jwtHelper.verifyToken(token, config.refresh_token_secret as Secret);
+
+    }
+    catch (err) {
+        throw new Error("You are not authorized!")
+    }
+
+    const userData = await prisma.user.findUniqueOrThrow({
+        where: {
+            email: decodedData.email,
+            status: UserStatus.ACTIVE
+        }
+    });
+
+    const accessToken = jwtHelper.generateToken({
+        email: userData.email,
+        role: userData.role
+    },
+        config.access_token_secret as Secret,
+        config.access_token_expires as string
+    );
+
+    const refreshToken = jwtHelper.generateToken({
+        email: userData.email,
+        role: userData.role
+    },
+        config.refresh_token_secret as Secret,
+        config.refresh_token_expires as string
+    );
+
+    return {
+        accessToken,
+        refreshToken,
+
+    };
+
+};
 
 
 
@@ -117,6 +157,7 @@ const login=async(payload:{email:string, password:string})=>{
 export const AuthService={
     registerAdmin,
     registerUser,
-    login
+    login,
+    refreshToken
 
 }
