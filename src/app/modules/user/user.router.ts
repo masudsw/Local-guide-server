@@ -23,6 +23,7 @@ router.patch(
       return UserController.updateMyProfile(req, res, next);
     }
 );
+router.get("/",auth("ADMIN"), UserController.getAllUsers);
 
 // Public profile
 router.get(

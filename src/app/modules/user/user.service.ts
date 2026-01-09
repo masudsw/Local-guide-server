@@ -1,8 +1,11 @@
 
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { prisma } from "../../shared/prisma";
 import { IUserPayload, IUpdateUserProfile } from "./user.interface";
 import { fileUploader } from "../../helper/fileUploader";
+import { IPaginationOptions } from "../../interface/IPaginationOptions";
+import { paginationHelper } from "../../helper/paginationHelper";
+import { userSearchAbleFields } from "./user.constant";
 
 const getMyProfile = async (user: IUserPayload) => {
   const result = await prisma.user.findUnique({
@@ -29,7 +32,7 @@ export const updateMyProfile = async (
 ) => {
   const { expertise, dailyRate, ...userData } = payload;
   let profilePhoto: string | undefined;
- 
+
   if (file) {
     // 1. Find the current user to get the old photo URL
     const currentUser = await prisma.user.findUnique({
@@ -37,14 +40,10 @@ export const updateMyProfile = async (
       select: { profilePhoto: true }
     });
 
-    // 2. If an old photo exists, delete it from Cloudinary
     if (currentUser?.profilePhoto) {
-      // Extract the public_id from the URL 
-      // Example: https://res.cloudinary.com/demo/image/upload/v1/profilePhoto_123.jpg
-      // The public_id is "profilePhoto_123"
+
       const publicId = currentUser.profilePhoto.split("/").pop()?.split(".")[0];
-      console.log("publicId-----",publicId)
-      
+
       if (publicId) {
         await fileUploader.deleteFromCloudinary(publicId);
       }
@@ -52,7 +51,7 @@ export const updateMyProfile = async (
 
     // 3. Upload the new photo
     const uploadResult = await fileUploader.uploadToCloudinary(file);
-  
+
     profilePhoto = uploadResult?.secure_url;
   }
 
@@ -61,14 +60,14 @@ export const updateMyProfile = async (
     where: { id: user.id },
     data: {
       ...userData,
-      ...(profilePhoto && { profilePhoto }), 
-      guideProfile: user.role === Role.GUIDE 
+      ...(profilePhoto && { profilePhoto }),
+      guideProfile: user.role === Role.GUIDE
         ? {
-            update: {
-              expertise: expertise,
-              dailyRate: dailyRate ? Number(dailyRate) : undefined,
-            },
-          }
+          update: {
+            expertise: expertise,
+            dailyRate: dailyRate ? Number(dailyRate) : undefined,
+          },
+        }
         : undefined,
     },
     include: { guideProfile: true },
@@ -77,59 +76,93 @@ export const updateMyProfile = async (
   return result;
 };
 
-// export const updateMyProfile = async (
-//   user: IUserPayload,
-//   payload: IUpdateUserProfile
-// ) => {
-//   // 1. Destructure the payload to separate Guide-specific data
-//   const { expertise, dailyRate, ...userData } = payload;
+const getAllUsers = async (params: any, options: IPaginationOptions) => {
+    const { page, limit, skip } = paginationHelper.calculatePagination(options);
+    const { searchTerm, ...filterData } = params;
 
-//   const result = await prisma.user.update({
-//     where: {
-//       id: user.id,
-//     },
-//     data: {
-//       // 2. Update standard User fields (name, bio, languages, etc.)
-//       ...userData,
+    const andConditions: Prisma.UserWhereInput[] = [];
 
-//       // 3. Handle Nested Update for GuideProfile
-//       guideProfile: user.role === Role.GUIDE 
-//         ? {
-//             update: {
-//               expertise: expertise,
-//               dailyRate: dailyRate ? Number(dailyRate) : undefined,
-//             },
-//           }
-//         : undefined,
-//     },
-//     include: {
-//       guideProfile: true, // Returns the guide data in the response
-//     },
-//   });
+    if (params.searchTerm) {
+        andConditions.push({
+            OR: userSearchAbleFields.map(field => ({
+                [field]: {
+                    contains: params.searchTerm,
+                    mode: 'insensitive'
+                }
+            }))
+        })
+    };
 
-//   return result;
-// };
+    if (Object.keys(filterData).length > 0) {
+        andConditions.push({
+            AND: Object.keys(filterData).map(key => ({
+                [key]: {
+                    equals: (filterData as any)[key]
+                }
+            }))
+        })
+    };
 
-const getUserById = async (id: string) => {
-  const result = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      role: true,
-      profilePhoto: true,
-      bio: true,
-      languages: true,
-      guideProfile: true,
-      listings: true,
-      reviews: true,
-    },
-  });
+    const whereConditions: Prisma.UserWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-  return result;
+    const result = await prisma.user.findMany({
+        where: whereConditions,
+        skip,
+        take: limit,
+        orderBy: options.sortBy && options.sortOrder ? {
+            [options.sortBy]: options.sortOrder
+        } : {
+            createdAt: 'desc'
+        },
+        select: {
+            id: true,
+            email: true,
+            role: true,
+            
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            
+        }
+    });
+
+    const total = await prisma.user.count({
+        where: whereConditions
+    });
+
+    return {
+        meta: {
+            page,
+            limit,
+            total
+        },
+        data: result
+    };
 };
-export const UserService = {
-  getMyProfile,
-  updateMyProfile,
-  getUserById,
-}
+
+
+
+  const getUserById = async (id: string) => {
+    const result = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        profilePhoto: true,
+        bio: true,
+        languages: true,
+        guideProfile: true,
+        Listing: true,
+        Review: true,
+      },
+    });
+
+    return result;
+  };
+  export const UserService = {
+    getMyProfile,
+    updateMyProfile,
+    getUserById,
+    getAllUsers
+  }

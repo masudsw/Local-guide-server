@@ -11,6 +11,8 @@ model User {
   guideProfile    GuideProfile?
   touristBookings Booking[]     @relation("TouristBookings")
   Listing         Listing[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   Review Review[]
 }
