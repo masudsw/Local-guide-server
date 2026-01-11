@@ -3,6 +3,8 @@ import { ListingService } from "./listing.service";
 import catchAsync from "../../shared/catchAsync";
 import sendResponse from "../../shared/sendResponse";
 import { IUserPayload } from "../user/user.interface";
+import { listingFilterableFields } from "./listing.constants";
+import pick from "../../helper/pick";
 
 const createListing = catchAsync(async (req: Request, res: Response) => {
     const result = await ListingService.createListing(req.user as IUserPayload,
@@ -29,8 +31,12 @@ const updateListing = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-const getAllListings = catchAsync(async (_req: Request, res: Response) => {
-    const result = await ListingService.getAllListings();
+const getAllListings = catchAsync(async (req: Request, res: Response) => {
+    const filters = pick(req.query, listingFilterableFields);
+
+    const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder'])
+
+    const result = await ListingService.getAllListings(filters, options);
 
     sendResponse(res, {
         statusCode: 200,

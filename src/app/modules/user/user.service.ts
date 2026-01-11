@@ -79,6 +79,8 @@ export const updateMyProfile = async (
 const getAllUsers = async (params: any, options: IPaginationOptions) => {
     const { page, limit, skip } = paginationHelper.calculatePagination(options);
     const { searchTerm, ...filterData } = params;
+    console.log("searchTerm",searchTerm);
+    console.log("filterData",filterData)
 
     const andConditions: Prisma.UserWhereInput[] = [];
 

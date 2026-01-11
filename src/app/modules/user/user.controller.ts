@@ -31,9 +31,8 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
     const filters = pick(req.query, userFilterableFields);
     const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder'])
 
-
   const result = await UserService.getAllUsers(filters, options);
-  console.log("user result in service---",result)
+ 
   sendResponse(res, {
     statusCode: 200,
     success: true,
